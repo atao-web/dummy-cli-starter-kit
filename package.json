@@ -15,9 +15,15 @@
   "dependencies": {
     "arg": "^4.1.2",
     "chalk": "^3.0.0",
+    "covgen": "^3.1.0",
     "esm": "^3.2.25",
+    "execa": "^4.0.0",
+    "gitignore": "^0.6.0",
     "inquirer": "^7.0.1",
-    "ncp": "^2.0.0"
+    "listr": "^0.14.3",
+    "ncp": "^2.0.0",
+    "pkg-install": "^1.0.0",
+    "spdx-license-list": "^6.1.0"
   },
   "bin": {
     "@atao/dummy-cli-starter-kit": "bin/create-project",
