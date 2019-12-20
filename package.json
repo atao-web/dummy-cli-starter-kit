@@ -1,0 +1,34 @@
+{
+  "name": "@atao60/dummy-cli-starter-kit",
+  "version": "0.0.1",
+  "description": "A CLI to bootstrap my new projects",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "cli",
+    "dummy-cli-starter-kit"
+  ],
+  "author": "Pierre Raoul",
+  "license": "MIT",
+  "dependencies": {
+    "arg": "^4.1.2",
+    "chalk": "^3.0.0",
+    "esm": "^3.2.25",
+    "inquirer": "^7.0.1",
+    "ncp": "^2.0.0"
+  },
+  "bin": {
+    "@atao/dummy-cli-starter-kit": "bin/create-project",
+    "dummy-cli-starter-kit": "bin/create-project"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "templates/"
+  ]
+}
