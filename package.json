@@ -1,6 +1,6 @@
 {
   "name": "@atao60/dummy-cli-starter-kit",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A CLI to bootstrap my new projects",
   "main": "src/index.js",
   "scripts": {
@@ -27,7 +27,9 @@
   },
   "bin": {
     "@atao/dummy-cli-starter-kit": "bin/create-project",
-    "dummy-cli-starter-kit": "bin/create-project"
+    "dummy-cli-starter-kit": "bin/create-project",
+    "create-@atao/dummy-cli-starter-kit": "bin/create-project",
+    "create-dummy-cli-starter-kit": "bin/create-project"
   },
   "publishConfig": {
     "access": "public"
