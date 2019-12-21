@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { access as fsAccess, constants, createWriteStream, writeFile as fsWriteFile } from 'fs';
+import { accessSync, constants, createWriteStream, writeFile as fsWriteFile } from 'fs';
 import ncp from 'ncp';
 import { join, resolve } from 'path';
 import { promisify } from 'util';
@@ -10,7 +10,6 @@ import { projectInstall } from 'pkg-install';
 import { licenseText } from 'spdx-license-list/licenses/MIT';
 import { writeFile as gitignoreWriteFile } from 'gitignore';
 
-const access = promisify(fsAccess);
 const writeFile = promisify(fsWriteFile);
 const copy = promisify(ncp);
 const writeGitignore = promisify(gitignoreWriteFile);
@@ -74,9 +73,9 @@ export async function createProject(options) {
   options.templateDirectory = templateDir;
 
   try {
-    await access(templateDir, constants.R_OK);
+    accessSync(templateDir, constants.R_OK)
   } catch (err) {
-    console.error('%s Invalid template name', chalk.red.bold('ERROR'));
+    console.error('%s Invalid template name: %s', chalk.red.bold('ERROR'), err);
     exit(1);
   }
 
