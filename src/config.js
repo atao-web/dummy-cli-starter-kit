@@ -1,6 +1,8 @@
 import arg from 'arg';
 import { prompt } from 'inquirer';
 
+import { templateDefs } from './main';
+
 export async function fetchOptionsFrom(args) {
     const rawoptions = parseArgumentsIntoOptions(args);
     return await promptForMissingOptions(rawoptions);
@@ -43,7 +45,7 @@ export async function promptForMissingOptions(options) {
             type: 'list',
             name: 'template',
             message: 'Please choose which project template to use',
-            choices: ['JavaScript', 'TypeScript'],
+            choices: Object.values(templateDefs).map(d => d.label),
             default: defaultTemplate,
         });
     }
