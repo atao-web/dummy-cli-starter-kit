@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { accessSync, constants, createWriteStream, writeFile as fsWriteFile } from 'fs';
+import { accessSync, constants, createWriteStream, existsSync, writeFile as fsWriteFile } from 'fs';
 import ncp from 'ncp';
 import { basename, dirname, join, resolve } from 'path';
 import { promisify } from 'util';
@@ -27,7 +27,7 @@ const request = async (url, method = 'GET', postData) => {
   const lib = (url.search(/^\s*https:\/\//) > -1) ? https : http;
 
   return new Promise((resolve, reject) => {
-    const req = lib.request(/*params*/ url, res => {
+    const req = lib.request(url, res => {
       if (res.statusCode < 200 || res.statusCode >= 300) {
         return reject(new Error(`Status Code: ${res.statusCode}`));
       }
@@ -50,30 +50,43 @@ const request = async (url, method = 'GET', postData) => {
   });
 };
 
+/* Don't rely on racing between tasks to ensure copy of the right files for gitignore and license
+ * then use of execa.sync here
+ */
 async function cloneGit(options) {
-  const result = await execa('git', ['clone', options.templateDirectory, basename(options.targetDirectory)], {
-    cwd: dirname(options.targetDirectory),
-  });
-  if (result.failed) {
-    return Promise.reject(new Error('Failed to initialize git'));
+  const gitRepo = options.templateDirectory;
+  const targetSubDir = basename(options.targetDirectory);
+  const workingDir = dirname(options.targetDirectory);
+  const { failed } = execa.sync('git', ['clone', gitRepo, targetSubDir], {
+    cwd: workingDir,
+    // detached: true,
+    // stdio: "inherit"  // to be used to get the messages from git itself
+  })
+  if (failed) {
+    return Promise.reject(new Error('Failed to clone git repository'));
   }
-  return;
 }
 
 async function copyTemplateFiles(options, embedded = true) {
   if (embedded) {
     return copy(options.templateDirectory, options.targetDirectory, {
-      clobber: false,
+      clobber: false
     });
   } else {
     return cloneGit(options);
   }
 }
 
-async function createGitignore(options) { // TODO don't overwrite an existing file
+async function createGitignore(options) {
+  const targetFilePath = join(options.targetDirectory, '.gitignore');
+  if (existsSync(targetFilePath)) {
+    console.log('%s already existing gitignore file: keep as it', chalk.yellow.bold('WARNING'));
+    return;
+  }
+
   const file = createWriteStream(
-    join(options.targetDirectory, '.gitignore'),
-    { flags: 'a' }
+    targetFilePath,
+    { flags: 'wx' }  // belt & suspenders...
   );
   return writeGitignore({
     type: 'Node',
@@ -88,17 +101,35 @@ function copyrightYears(creationYear) {
   return prefix + now;
 }
 
-async function createLicense(options) { // TODO don't overwrite an existing file
-  const targetPath = join(options.targetDirectory, 'LICENSE');
+async function createLicense(options) {
+  const targetFilePath = join(options.targetDirectory, 'LICENSE');
+  if (existsSync(targetFilePath)) {
+    console.log('%s already existing license file: keep as it', chalk.yellow.bold('WARNING'));
+    return;
+  }
+
   const licenseContent = licenseText
     .replace('<year>', copyrightYears(options.creationYear))
     .replace('<copyright holders>', `${options.copyrightHolders}`);
-  return writeFile(targetPath, licenseContent, 'utf8');
+  try {
+    return await writeFile(targetFilePath, licenseContent, { 
+      encoding: 'utf8', 
+      flag: 'wx'  // belt & suspenders...
+    });
+  } catch (e) {
+    console.log('%s license file not created or kept as it', chalk.yellow.bold('WARNING'));
+  }
 }
 
 async function initGit(options) {
+  const targetFilePath = join(options.targetDirectory, '.git');
+  if (existsSync(targetFilePath)) {
+    console.log('%s already existing license file: keep as it', chalk.yellow.bold('WARNING'));
+    return;
+  }
+
   const result = await execa('git', ['init'], {
-    cwd: options.targetDirectory,
+    cwd: options.targetDirectory
   });
   if (result.failed) {
     return Promise.reject(new Error('Failed to initialize git'));
@@ -116,7 +147,6 @@ export async function createProject(options) {
 
   const templateTag = options.template.toLowerCase();
   const template = templateDefs[templateTag];
-  console.log("createProject with template: ", template)
 
   const currentFileUrl = import.meta.url;
   const templateDir = template && template.url ? template.url : resolve(
@@ -129,31 +159,31 @@ export async function createProject(options) {
   const tasks = new Listr([
     {
       title: 'Copy project files',
-      task: ctx => copyTemplateFiles(options, ctx.embedded),
+      task: ctx => copyTemplateFiles(options, ctx.embedded)
     },
     {
       title: 'Create gitignore',
-      task: () => createGitignore(options),
+      task: () => createGitignore(options)
     },
     {
       title: 'Create License',
-      task: () => createLicense(options),
+      task: () => createLicense(options)
     },
     {
       title: 'Initialize git',
       task: () => initGit(options),
-      enabled: () => options.git,
+      enabled: () => options.git
     },
     {
       title: 'Install dependencies',
       task: () =>
         projectInstall({
-          cwd: options.targetDirectory,
+          cwd: options.targetDirectory
         }),
       skip: () =>
         !options.runInstall
           ? 'Pass --install to automatically install dependencies'
-          : undefined,
+          : undefined
     },
   ]);
 
@@ -166,7 +196,7 @@ export async function createProject(options) {
     }
     await tasks.run({ embedded });
     console.log('%s Project ready', chalk.green.bold('DONE'));
-    return true;  
+    return true;
   } catch (err) {
     console.error('%s Invalid template name or url: %s', chalk.red.bold('ERROR'), err);
     exit(1);
